@@ -7,7 +7,7 @@ const homeRoutes = require('./routes/home.js')
 const addRoutes = require('./routes/add.js')
 const coursesRoutes = require('./routes/courses.js')
 const cartRoutes = require('./routes/cart.js')
-const { allowInsecurePrototypeAccess } = require('@handlebars/allow-prototype-access');
+const {allowInsecurePrototypeAccess} = require('@handlebars/allow-prototype-access');
 
 const User = require('./models/user.js')
 
@@ -23,14 +23,26 @@ app.engine('hbs', hbs.engine)
 app.set('view engine', 'hbs')
 app.set('views', 'views')
 
+app.use(async (req, res, next) => {
+   try {
+      const user = await User.findById('601bc58cf9d7d344fc2fdbba')
+
+      req.user = user
+
+      next()
+   } catch (e) {
+      console.log(e)
+   }
+
+})
+
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({extended: true}))
 
 app.use('/', homeRoutes)
-app.use('/add',addRoutes)
-app.use('/courses',coursesRoutes)
-app.use('/cart',cartRoutes)
-
+app.use('/add', addRoutes)
+app.use('/courses', coursesRoutes)
+app.use('/cart', cartRoutes)
 
 
 const PORT = process.env.PORT || 8888
@@ -45,7 +57,19 @@ async function start() {
          useFindAndModify: false
       })
 
+      const candidate = await User.findOne()
 
+      if (!candidate) {
+         const user = new User({
+            email: 'viks2332@gmail.com',
+            name: 'Viks',
+            cart: {items: []}
+         })
+
+         await user.save()
+      } else {
+
+      }
 
       app.listen(PORT, () => {
          console.log(`Server is running on post ${PORT}`)

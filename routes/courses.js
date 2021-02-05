@@ -3,7 +3,9 @@ const Course = require('../models/course.js')
 const router = Router()
 
 router.get('/', async (req, res) => {
-   const courses = await Course.find()
+   // await Course.find().select('price title') select - для получения нужных полей
+   // await Course.find().populate('userId', 'email name') populate - для получения связанного поля из БД
+   const courses = await Course.find().populate('userId', 'email name')
 
    res.render('courses', {
       title: 'Courses page',
