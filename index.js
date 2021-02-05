@@ -7,6 +7,7 @@ const homeRoutes = require('./routes/home.js')
 const addRoutes = require('./routes/add.js')
 const coursesRoutes = require('./routes/courses.js')
 const cartRoutes = require('./routes/cart.js')
+const ordersRoutes = require('./routes/orders.js')
 const {allowInsecurePrototypeAccess} = require('@handlebars/allow-prototype-access');
 
 const User = require('./models/user.js')
@@ -43,6 +44,7 @@ app.use('/', homeRoutes)
 app.use('/add', addRoutes)
 app.use('/courses', coursesRoutes)
 app.use('/cart', cartRoutes)
+app.use('/orders', ordersRoutes)
 
 
 const PORT = process.env.PORT || 8888
