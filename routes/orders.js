@@ -4,17 +4,56 @@ const router = Router()
 
 
 router.get('/', async (req, res) => {
+   try {
+      const orders = await Order.find({'user.userId': req.user._id}).populate('user.userId')
 
 
-   res.render('orders', {
-      title: 'Orders page',
-      isOrder: true,
-   })
+
+      res.render('orders', {
+         title: 'Orders page',
+         isOrder: true,
+         orders: orders.map(o => ({
+            ...o._doc,
+            price: o.courses.reduce((total, c) => {
+               return total += c.course.price * c.count
+            }, 0)
+         }))
+      })
+   } catch (e) {
+      console.log(e)
+   }
+
+
 })
 
 router.post('/', async (req, res) => {
+   try {
+      const user = await req.user
+         .populate('cart.items.courseId')
+         .execPopulate()
 
-   res.redirect('/orders')
+      const courses = user.cart.items.map(i => ({
+         count: i.count,
+         course: {...i.courseId._doc}
+      }))
+
+      const order = new Order({
+         user: {
+            name: req.user.name,
+            userId: req.user
+         },
+         courses
+      })
+
+      await order.save()
+      await req.user.clearCart()
+
+
+      res.redirect('/orders')
+   } catch (e) {
+      console.log(e)
+   }
+
 })
 
 
