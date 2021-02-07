@@ -1,6 +1,10 @@
 const express = require('express')
 const mongoose = require('mongoose')
 const path = require('path')
+const csrf = require('csurf')
+const flash = require('connect-flash')
+const session = require('express-session')
+const MongoStore = require('connect-mongodb-session')(session)
 const exphbs = require('express-handlebars')
 const _handlebars = require('handlebars')
 const homeRoutes = require('./routes/home.js')
@@ -8,11 +12,14 @@ const addRoutes = require('./routes/add.js')
 const coursesRoutes = require('./routes/courses.js')
 const cartRoutes = require('./routes/cart.js')
 const ordersRoutes = require('./routes/orders.js')
+const authRoutes = require('./routes/auth.js')
 const {allowInsecurePrototypeAccess} = require('@handlebars/allow-prototype-access');
-
-const User = require('./models/user.js')
+const varMiddleware = require('./middleware/variables.js')
+const userMiddleware = require('./middleware/user.js')
+const MONGODB_URI = 'mongodb+srv://viks2332:viks2332@cluster0.tgkbk.mongodb.net/shop'
 
 const app = express()
+
 
 const hbs = exphbs.create({
    defaultLayout: 'main',
@@ -20,58 +27,49 @@ const hbs = exphbs.create({
    handlebars: allowInsecurePrototypeAccess(_handlebars)
 })
 
+const store = new MongoStore({
+   collection: 'sessions',
+   uri: MONGODB_URI
+})
+
 app.engine('hbs', hbs.engine)
 app.set('view engine', 'hbs')
 app.set('views', 'views')
 
-app.use(async (req, res, next) => {
-   try {
-      const user = await User.findById('601bc58cf9d7d344fc2fdbba')
-
-      req.user = user
-
-      next()
-   } catch (e) {
-      console.log(e)
-   }
-
-})
 
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({extended: true}))
+app.use(session({
+   secret: 'test-secret',
+   resave: false,
+   saveUninitialized: false,
+   store
+}))
+
+app.use(csrf())
+app.use(flash())
+app.use(varMiddleware)
+app.use(userMiddleware)
 
 app.use('/', homeRoutes)
 app.use('/add', addRoutes)
 app.use('/courses', coursesRoutes)
 app.use('/cart', cartRoutes)
 app.use('/orders', ordersRoutes)
+app.use('/auth', authRoutes)
 
 
 const PORT = process.env.PORT || 8888
 
 async function start() {
    try {
-      const url = 'mongodb+srv://viks2332:viks2332@cluster0.tgkbk.mongodb.net/shop'
 
-      await mongoose.connect(url, {
+
+      await mongoose.connect(MONGODB_URI, {
          useNewUrlParser: true,
          useUnifiedTopology: true,
          useFindAndModify: false
       })
-
-      const candidate = await User.findOne()
-
-      if (!candidate) {
-         const user = new User({
-            email: 'viks2332@gmail.com',
-            name: 'Viks',
-            cart: {items: []}
-         })
-
-         await user.save()
-      } else {
-
-      }
 
       app.listen(PORT, () => {
          console.log(`Server is running on post ${PORT}`)
