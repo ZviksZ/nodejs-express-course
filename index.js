@@ -16,7 +16,7 @@ const authRoutes = require('./routes/auth.js')
 const {allowInsecurePrototypeAccess} = require('@handlebars/allow-prototype-access');
 const varMiddleware = require('./middleware/variables.js')
 const userMiddleware = require('./middleware/user.js')
-const MONGODB_URI = 'mongodb+srv://viks2332:viks2332@cluster0.tgkbk.mongodb.net/shop'
+const keys = require('./keys')
 
 const app = express()
 
@@ -29,7 +29,7 @@ const hbs = exphbs.create({
 
 const store = new MongoStore({
    collection: 'sessions',
-   uri: MONGODB_URI
+   uri: keys.MONGODB_URI
 })
 
 app.engine('hbs', hbs.engine)
@@ -40,7 +40,7 @@ app.set('views', 'views')
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({extended: true}))
 app.use(session({
-   secret: 'test-secret',
+   secret: keys.SESSION_SECRET,
    resave: false,
    saveUninitialized: false,
    store
@@ -65,7 +65,7 @@ async function start() {
    try {
 
 
-      await mongoose.connect(MONGODB_URI, {
+      await mongoose.connect(keys.MONGODB_URI, {
          useNewUrlParser: true,
          useUnifiedTopology: true,
          useFindAndModify: false

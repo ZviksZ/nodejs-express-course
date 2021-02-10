@@ -6,13 +6,19 @@ const auth = require('../middleware/auth')
 router.get('/', async (req, res) => {
    // await Course.find().select('price title') select - для получения нужных полей
    // await Course.find().populate('userId', 'email name') populate - для получения связанного поля из БД
-   const courses = await Course.find().populate('userId', 'email name')
+   try {
+      const courses = await Course.find().populate('userId', 'email name')
 
-   res.render('courses', {
-      title: 'Courses page',
-      isCourses: true,
-      courses
-   })
+      res.render('courses', {
+         title: 'Courses page',
+         isCourses: true,
+         userId: req.user ? req.user._id.toString() : null,
+         courses
+      })
+   } catch (e) {
+      console.log(e)
+   }
+
 })
 
 router.get('/:id/edit', auth, async (req, res) => {
