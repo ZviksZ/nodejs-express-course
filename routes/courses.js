@@ -3,6 +3,10 @@ const Course = require('../models/course.js')
 const router = Router()
 const auth = require('../middleware/auth')
 
+function isOwner(course, req) {
+   return course.userId.toString() === req.user._id.toString()
+}
+
 router.get('/', async (req, res) => {
    // await Course.find().select('price title') select - для получения нужных полей
    // await Course.find().populate('userId', 'email name') populate - для получения связанного поля из БД
@@ -26,26 +30,57 @@ router.get('/:id/edit', auth, async (req, res) => {
       return res.redirect('/')
    }
 
-   const course = await Course.findById(req.params.id)
+   try {
+      const course = await Course.findById(req.params.id)
 
-   res.render('course-edit', {
-      title: `Edit ${course.title}`,
-      course
-   })
+      if (!isOwner(course, req)) {
+         return res.redirect('/courses')
+      }
+
+      res.render('course-edit', {
+         title: `Edit ${course.title}`,
+         course
+      })
+   } catch (e) {
+      console.log(e)
+   }
+
+
 
 })
 
 router.post('/edit', auth, async (req, res) => {
-   const {id} = req.body
-   delete req.body.id
-   await Course.findOneAndUpdate(id, req.body)
 
-   res.redirect('/courses')
+
+   try {
+      const {id} = req.body
+      delete req.body.id
+
+      const course = await Course.findById(id)
+
+      if (!isOwner(course, req)) {
+         return res.redirect('/courses')
+      }
+      Object.assign(course, req.body)
+
+      await course.save()
+
+      res.redirect('/courses')
+
+
+   } catch (e) {
+      console.log(e)
+   }
+
+
 })
 
 router.post('/remove', auth, async (req, res) => {
    try {
-      await Course.deleteOne({_id: req.body.id})
+      await Course.deleteOne({
+         _id: req.body.id,
+         userId: req.user._id
+      })
 
       res.redirect('/courses')
    } catch (e) {
@@ -54,12 +89,17 @@ router.post('/remove', auth, async (req, res) => {
 })
 
 router.get('/:id', async (req, res) => {
-   const course = await Course.findById(req.params.id)
-   res.render('course', {
-      title: `Course ${course.title}`,
-      layout: 'empty',
-      course
-   })
+   try {
+      const course = await Course.findById(req.params.id)
+      res.render('course', {
+         title: `Course ${course.title}`,
+         layout: 'empty',
+         course
+      })
+   } catch (e) {
+      console.log(e)
+   }
+
 })
 
 module.exports = router
