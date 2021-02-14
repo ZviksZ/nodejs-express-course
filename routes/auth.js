@@ -8,6 +8,8 @@ const sendgrid = require('nodemailer-sendgrid-transport')
 const keys = require('../keys')
 const regMail = require('../emails/registration.js')
 const resetMail = require('../emails/reset.js')
+const {validationResult} = require('express-validator')
+const {registerValidators, loginValidators} = require('../utils/validators.js')
 
 const transporter = nodemailer.createTransport(sendgrid({
    auth: {api_key: keys.SENDGRID_API_KEY}
@@ -29,7 +31,7 @@ router.get('/logout', async (req, res) => {
    })
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginValidators, async (req, res) => {
    try {
       const {email, password} = req.body
 
@@ -62,27 +64,27 @@ router.post('/login', async (req, res) => {
 
 })
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerValidators, async (req, res) => {
    try {
-      const {email, name, password, confirm} = req.body
+      const {email, name, password} = req.body
 
-      const candidate = await User.findOne({email})
+      const errors = validationResult(req)
 
-      if (candidate) {
-         req.flash('registerError', 'User with this email is no empty')
-         res.redirect('/auth/login#register')
-      } else {
-         const hashPassword = await bcrypt.hash(password, 10)
-         const user = new User({
-            email, name, password: hashPassword, cart: {items: []}
-         })
-
-         await user.save()
-
-         res.redirect('/auth/login#login')
-
-         await transporter.sendMail(regMail(email))
+      if(!errors.isEmpty()) {
+         req.flash('registerError', errors.array()[0].msg)
+         return res.status(422).redirect('/auth/login#register')
       }
+
+      const hashPassword = await bcrypt.hash(password, 10)
+      const user = new User({
+         email, name, password: hashPassword, cart: {items: []}
+      })
+
+      await user.save()
+
+      res.redirect('/auth/login#login')
+
+      await transporter.sendMail(regMail(email))
 
    } catch (e) {
       console.log(e)
